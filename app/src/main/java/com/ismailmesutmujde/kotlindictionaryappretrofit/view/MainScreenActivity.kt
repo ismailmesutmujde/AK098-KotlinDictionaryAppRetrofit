@@ -8,14 +8,23 @@ import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.ismailmesutmujde.kotlindictionaryappretrofit.R
 import com.ismailmesutmujde.kotlindictionaryappretrofit.adapter.WordsRecyclerViewAdapter
+import com.ismailmesutmujde.kotlindictionaryappretrofit.dao.WordsDaoInterface
 import com.ismailmesutmujde.kotlindictionaryappretrofit.databinding.ActivityMainScreenBinding
 import com.ismailmesutmujde.kotlindictionaryappretrofit.model.Words
+import com.ismailmesutmujde.kotlindictionaryappretrofit.model.WordsResponse
+import com.ismailmesutmujde.kotlindictionaryappretrofit.service.ApiUtils
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class MainScreenActivity : AppCompatActivity(), SearchView.OnQueryTextListener  {
 
     private lateinit var bindingMainScreen : ActivityMainScreenBinding
     private lateinit var wordsList:ArrayList<Words>
     private lateinit var adapter: WordsRecyclerViewAdapter
+
+    private lateinit var wdi : WordsDaoInterface
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         bindingMainScreen = ActivityMainScreenBinding.inflate(layoutInflater)
@@ -28,6 +37,9 @@ class MainScreenActivity : AppCompatActivity(), SearchView.OnQueryTextListener  
         bindingMainScreen.recyclerView.setHasFixedSize(true)
         bindingMainScreen.recyclerView.layoutManager = LinearLayoutManager(this)
 
+        wdi = ApiUtils.getWordsDaoInterface()
+
+        /*
         wordsList = ArrayList()
         val w1 = Words(1, "Dog","Köpek")
         val w2 = Words(2, "Fish","Balık")
@@ -36,9 +48,9 @@ class MainScreenActivity : AppCompatActivity(), SearchView.OnQueryTextListener  
         wordsList.add(w1)
         wordsList.add(w2)
         wordsList.add(w3)
+        */
 
-        adapter = WordsRecyclerViewAdapter(this, wordsList)
-        bindingMainScreen.recyclerView.adapter = adapter
+        allWords()
 
     }
 
@@ -51,14 +63,52 @@ class MainScreenActivity : AppCompatActivity(), SearchView.OnQueryTextListener  
     }
 
     override fun onQueryTextSubmit(query: String): Boolean {
-
+        searhWord(query)
         Log.e("Sent Search", query)
         return true
     }
 
     override fun onQueryTextChange(newText: String): Boolean {
-
+        searhWord(newText)
         Log.e("As letters are entered", newText)
         return true
+    }
+
+    fun allWords() {
+        wdi.allWords().enqueue(object : Callback<WordsResponse> {
+            override fun onResponse(call: Call<WordsResponse>, response: Response<WordsResponse>) {
+
+                if (response != null) {
+                    val wordsList = response.body()!!.words
+                    adapter = WordsRecyclerViewAdapter(this@MainScreenActivity, wordsList)
+                    bindingMainScreen.recyclerView.adapter = adapter
+                }
+
+            }
+
+            override fun onFailure(call: Call<WordsResponse>?, t: Throwable?) {
+
+            }
+
+        })
+    }
+
+    fun searhWord(searchingWord:String) {
+        wdi.searchWord(searchingWord).enqueue(object : Callback<WordsResponse> {
+            override fun onResponse(call: Call<WordsResponse>?, response: Response<WordsResponse>?) {
+
+                if (response != null) {
+                    val wordsList = response.body()!!.words
+                    adapter = WordsRecyclerViewAdapter(this@MainScreenActivity, wordsList)
+                    bindingMainScreen.recyclerView.adapter = adapter
+                }
+
+            }
+
+            override fun onFailure(call: Call<WordsResponse>?, t: Throwable?) {
+
+            }
+
+        })
     }
 }
